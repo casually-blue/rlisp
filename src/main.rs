@@ -3,6 +3,7 @@ extern crate alloc;
 mod prompt;
 use prompt::ReplPrompt;
 use reedline::{Reedline, Signal};
+use xdg::*;
 
 type Result<T> = core::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -21,7 +22,6 @@ impl LispExpr {
             // with their value
             Self::Symbol(_) | Self::Number(_) => Ok(self.clone()),
 
-
             // A List has to be actually evaluated
             Self::List(list) => {
                 // We need to check if we have anything in the list so we can apply the function
@@ -29,7 +29,9 @@ impl LispExpr {
                 let (f, args) = if let Some((f, args)) = list.split_first() {
                     (f, args)
                 } else {
-                    return Err(Box::new(LispError::Reason("Expected a function application".into())));
+                    return Err(Box::new(LispError::Reason(
+                        "Expected a function application".into(),
+                    )));
                 };
 
                 match f {
@@ -43,27 +45,42 @@ impl LispExpr {
                                 match arg {
                                     // We have just a number so we can add it to the accumulator
                                     // directly
-                                    Self::Number(n) => { result += n; }
+                                    Self::Number(n) => {
+                                        result += n;
+                                    }
                                     // We probably have a function
                                     Self::List(_) => {
                                         match arg.eval()? {
                                             // If it evaluates to a number we just add it to the
                                             // accumulator
-                                            Self::Number(n) => { result += n; }
+                                            Self::Number(n) => {
+                                                result += n;
+                                            }
                                             // The result of evaluating the function was wrongly
                                             // typed
-                                            _ => { return Err(Box::new(LispError::Reason("Wrong type of argument".into()))) }
+                                            _ => {
+                                                return Err(Box::new(LispError::Reason(
+                                                    "Wrong type of argument".into(),
+                                                )))
+                                            }
                                         }
                                     }
                                     // We didn't get a number so we just error
-                                    _ => { return Err(Box::new(LispError::Reason("Expected a number".into()))) }
+                                    _ => {
+                                        return Err(Box::new(LispError::Reason(
+                                            "Expected a number".into(),
+                                        )))
+                                    }
                                 }
                             }
                             // Return the result
                             Ok(Self::Number(result))
                         } else if name == "-" {
                             if args.len() > 2 {
-                                Err(Box::new(LispError::Reason("Subtraction doesn't take more than 2 arguments currently".into())))
+                                Err(Box::new(LispError::Reason(
+                                    "Subtraction doesn't take more than 2 arguments currently"
+                                        .into(),
+                                )))
                             // We need two numbers and we know we have only two arguments
                             // so we can just force unwrap them from the option
                             } else if args.len() == 2 {
@@ -72,9 +89,11 @@ impl LispExpr {
 
                                 // Call eval on both so that we have their applied form if they are
                                 // function calls
-                                match (a.eval()?,b.eval()?) {
-                                    (Self::Number(a),Self::Number(b)) => Ok(Self::Number(a-b)),
-                                    _ => Err(Box::new(LispError::Reason("Both arguments must be numbers".into())))
+                                match (a.eval()?, b.eval()?) {
+                                    (Self::Number(a), Self::Number(b)) => Ok(Self::Number(a - b)),
+                                    _ => Err(Box::new(LispError::Reason(
+                                        "Both arguments must be numbers".into(),
+                                    ))),
                                 }
                             } else {
                                 Err(Box::new(LispError::Reason("Expected two arguments".into())))
@@ -83,11 +102,11 @@ impl LispExpr {
                             // There is no function with that name
                             Err(Box::new(LispError::Reason("Unknown function".into())))
                         }
-                    },
+                    }
                     // We didn't get a function to apply
-                    _ => {
-                        Err(Box::new(LispError::Reason("Expected a function name".into())))
-                    },
+                    _ => Err(Box::new(LispError::Reason(
+                        "Expected a function name".into(),
+                    ))),
                 }
             }
         }
@@ -163,15 +182,26 @@ fn eval(code: &str) -> LispExpr {
     let code = code.replace("(", " ( ").replace(")", " ) ");
     let code: Vec<&str> = code.split_whitespace().collect();
 
-
     // Parse and then return the expression instead of the remaining tokens
     // TODO: fix this so that it returns an error if there is any remaining input
     parse(&code).unwrap().0
 }
 
 fn main() -> Result<()> {
+    // Initialize xdg dirs
+    let xdg_dirs = BaseDirectories::with_prefix("rlisp").unwrap();
+    let history_path = xdg_dirs
+        .place_cache_file("rlisp_history")
+        .expect("Could not create config directory");
+
     // Setup the readline library
-    let mut line_editor = Reedline::create()?;
+    let history = Box::new(
+        reedline::FileBackedHistory::with_file(9000, history_path)
+            .expect("Error configuring history with file"),
+    );
+    let mut line_editor = Reedline::create()?
+        .with_history(history)
+        .expect("Failed to setup history file");
 
     loop {
         // Use the prompt

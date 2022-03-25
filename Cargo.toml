@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 crossterm = "0.23.1"
 reedline = "0.3.0"
+xdg = "2.4.1"
