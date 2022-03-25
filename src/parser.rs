@@ -50,7 +50,7 @@ fn parse<'a>(code: &'a [&'a str]) -> Result<(LispExpr, &'a [&'a str])> {
     }
 }
 
-pub fn eval(code: &str) -> Result<LispExpr> {
+pub fn tl_parse(code: &str) -> Result<LispExpr> {
     // Tokenize the lisp code
     let code = code.replace("(", " ( ").replace(")", " ) ");
     let code: Vec<&str> = code.split_whitespace().collect();

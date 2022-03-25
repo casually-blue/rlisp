@@ -6,7 +6,7 @@ mod parser;
 mod prompt;
 mod result;
 
-use parser::eval;
+use parser::tl_parse;
 use prompt::ReplPrompt;
 use result::Result;
 
@@ -36,8 +36,7 @@ fn main() -> Result<()> {
         match line_editor.read_line(&ReplPrompt {})? {
             Signal::Success(text) => {
                 // If we got some text, we evaluate it and print the result
-                let result = eval(&text);
-                println!("{:?}", result);
+                let result = tl_parse(&text);
                 match result {
                     Ok(res) => println!("Eval result: {:?}", res.eval()),
                     Err(e) => println!("Error: {}", e),
