@@ -38,7 +38,7 @@ fn main() -> Result<()> {
                 // If we got some text, we evaluate it and print the result
                 let result = eval(&text);
                 println!("{:?}", result);
-                println!("eval {:?}", result.eval());
+                println!("eval {:?}", result?.eval());
             }
 
             // End the program if we are asked to or we reach end of input

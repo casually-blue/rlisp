@@ -52,12 +52,22 @@ fn parse<'a>(code: &'a [&'a str]) -> Result<(LispExpr, &'a [&'a str])> {
     }
 }
 
-pub fn eval(code: &str) -> LispExpr {
+pub fn eval(code: &str) -> Result<LispExpr> {
     // Tokenize the lisp code
     let code = code.replace("(", " ( ").replace(")", " ) ");
     let code: Vec<&str> = code.split_whitespace().collect();
 
     // Parse and then return the expression instead of the remaining tokens
-    // TODO: fix this so that it returns an error if there is any remaining input
-    parse(&code).unwrap().0
+    match parse(&code) {
+        Ok((expr, rest)) => {
+            if rest.len() == 0 {
+                Ok(expr)
+            } else {
+                Err(Box::new(LispError::Reason("Failed to parse all of input".into())))
+            }
+        },
+        Err(e) => {
+            Err(e)
+        }
+    }
 }
