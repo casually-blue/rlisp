@@ -37,9 +37,9 @@ fn main() -> Result<()> {
             Signal::Success(text) => {
                 // If we got some text, we evaluate it and print the result
                 let result = tl_parse(&text);
-                match result {
+                match &result {
                     Ok(res) => println!("Eval result: {:?}", res.eval()),
-                    Err(e) => println!("Error: {}", e),
+                    Err(_) => println!("Eval result: {:?}", result),
                 }
             }
 

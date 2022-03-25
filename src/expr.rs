@@ -59,6 +59,14 @@ impl LispExpr {
         }
     }
 
+    fn lookup(symbol: &str) -> Result<Box<dyn Fn(&[LispExpr]) -> Result<LispExpr>>> {
+        match symbol {
+            "+" => Ok(Box::new(add)),
+            "-" => Ok(Box::new(sub)),
+            _ => Err(LispError::reason(format!("Unknown symbol {}", symbol))),
+        }
+    }
+
     fn eval_list(list: &[LispExpr]) -> Result<LispExpr> {
         // We need to check if we have anything in the list so we can apply the function
         // Some functions may not take any arguments but they at least have a name
@@ -72,22 +80,14 @@ impl LispExpr {
 
         match f {
             Self::Symbol(name) => {
-                match name.as_str() {
-                    // Just the add function for now
-                    "+" => add(args),
-                    "-" => sub(args),
-                    _ => {
-                        // There is no function with that name
-                        Err(LispError::reason(format!("Unknown function {}", name)))
-                    }
-                }
+                Self::lookup(name)?(args)
             }
             // We didn't get a function to apply
             // TODO: in future function could be a lambda which will not be just a function name in
             // a lookup
             _ => Err(LispError::reason(format!(
                 "Expected a function name, got {:?}",
-                list
+                f
             ))),
         }
     }

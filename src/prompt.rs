@@ -29,6 +29,6 @@ impl Prompt for ReplPrompt {
     }
 
     fn get_prompt_color(&self) -> Color {
-        Color::Red
+        Color::Green
     }
 }
