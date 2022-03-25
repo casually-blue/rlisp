@@ -1,5 +1,5 @@
-use crate::result::Result;
 use crate::error::LispError;
+use crate::result::Result;
 
 #[derive(Debug, Clone)]
 pub enum LispExpr {
@@ -23,84 +23,76 @@ impl LispExpr {
                 let (f, args) = if let Some((f, args)) = list.split_first() {
                     (f, args)
                 } else {
-                    return Err(Box::new(LispError::Reason(
-                        "Expected a function application".into(),
-                    )));
+                    return Err(LispError::reason("Expected a function application"));
                 };
 
                 match f {
                     Self::Symbol(name) => {
-                        // Just the add function for now
-                        if name == "+" {
-                            // Create a variable to accumulate the result
-                            let mut result: f64 = 0.0;
-                            // Iterate over each arg and do something with it
-                            for arg in args {
-                                match arg {
-                                    // We have just a number so we can add it to the accumulator
-                                    // directly
-                                    Self::Number(n) => {
-                                        result += n;
-                                    }
-                                    // We probably have a function
-                                    Self::List(_) => {
-                                        match arg.eval()? {
-                                            // If it evaluates to a number we just add it to the
-                                            // accumulator
-                                            Self::Number(n) => {
-                                                result += n;
-                                            }
-                                            // The result of evaluating the function was wrongly
-                                            // typed
-                                            _ => {
-                                                return Err(Box::new(LispError::Reason(
-                                                    "Wrong type of argument".into(),
-                                                )))
+                        match name.as_str() {
+                            // Just the add function for now
+                            "+" => {
+                                // Create a variable to accumulate the result
+                                let mut result: f64 = 0.0;
+                                // Iterate over each arg and do something with it
+                                for arg in args {
+                                    result += match arg {
+                                        // We have just a number so we can add it to the accumulator
+                                        // directly
+                                        Self::Number(n) => *n,
+                                        // We probably have a function
+                                        Self::List(_) => {
+                                            match arg.eval()? {
+                                                // If it evaluates to a number we just add it to the
+                                                // accumulator
+                                                Self::Number(n) => n,
+                                                // The result of evaluating the function was wrongly
+                                                // typed
+                                                _ => {
+                                                    return Err(LispError::reason(
+                                                        "Wrong type of argument",
+                                                    ))
+                                                }
                                             }
                                         }
-                                    }
-                                    // We didn't get a number so we just error
-                                    _ => {
-                                        return Err(Box::new(LispError::Reason(
-                                            "Expected a number".into(),
-                                        )))
+                                        // We didn't get a number so we just error
+                                        _ => return Err(LispError::reason("Expected a number")),
                                     }
                                 }
+                                // Return the result
+                                Ok(Self::Number(result))
                             }
-                            // Return the result
-                            Ok(Self::Number(result))
-                        } else if name == "-" {
-                            if args.len() > 2 {
-                                Err(Box::new(LispError::Reason(
-                                    "Subtraction doesn't take more than 2 arguments currently"
-                                        .into(),
-                                )))
-                            // We need two numbers and we know we have only two arguments
-                            // so we can just force unwrap them from the option
-                            } else if args.len() == 2 {
-                                let a = args.first().unwrap();
-                                let b = args.iter().skip(1).next().unwrap();
+                            "-" => {
+                                match args.len() {
+                                    2 => {
+                                        // We need two numbers and we know we have only two arguments
+                                        // so we can just force unwrap them from the option
+                                        let a = args.first().unwrap();
+                                        let b = args.iter().skip(1).next().unwrap();
 
-                                // Call eval on both so that we have their applied form if they are
-                                // function calls
-                                match (a.eval()?, b.eval()?) {
-                                    (Self::Number(a), Self::Number(b)) => Ok(Self::Number(a - b)),
-                                    _ => Err(Box::new(LispError::Reason(
-                                        "Both arguments must be numbers".into(),
-                                    ))),
+                                        // Call eval on both so that we have their applied form if they are
+                                        // function calls
+                                        match (a.eval()?, b.eval()?) {
+                                            (Self::Number(a), Self::Number(b)) => {
+                                                Ok(Self::Number(a - b))
+                                            }
+                                            _ => Err(LispError::reason(
+                                                "Both arguments must be numbers",
+                                            )),
+                                        }
+                                    }
+                                    _ => {
+                                        Err(LispError::reason("Subtract only takes two arguments"))
+                                    }
                                 }
-                            } else {
-                                Err(Box::new(LispError::Reason("Expected two arguments".into())))
                             }
-                        } else {
-                            // There is no function with that name
-                            Err(Box::new(LispError::Reason("Unknown function".into())))
+                            _ => {
+                                // There is no function with that name
+                                Err(LispError::reason("Unknown function"))
+                            }
                         }
                     }
                     // We didn't get a function to apply
-                    _ => Err(Box::new(LispError::Reason(
-                        "Expected a function name".into(),
-                    ))),
+                    _ => Err(LispError::reason("Expected a function name")),
                 }
             }
         }

@@ -1,7 +1,12 @@
-
 #[derive(Debug)]
 pub enum LispError {
     Reason(String),
+}
+
+impl LispError {
+    pub fn reason<T: Into<String>>(reason: T) -> Box<dyn std::error::Error> {
+        Box::new(LispError::Reason(reason.into()))
+    }
 }
 
 impl std::fmt::Display for LispError {

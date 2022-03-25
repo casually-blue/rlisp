@@ -1,13 +1,13 @@
 extern crate alloc;
 
-mod prompt;
-mod parser;
-mod result;
-mod expr;
 mod error;
+mod expr;
+mod parser;
+mod prompt;
+mod result;
 
-use prompt::ReplPrompt;
 use parser::eval;
+use prompt::ReplPrompt;
 use result::Result;
 
 use reedline::{Reedline, Signal};
@@ -38,7 +38,10 @@ fn main() -> Result<()> {
                 // If we got some text, we evaluate it and print the result
                 let result = eval(&text);
                 println!("{:?}", result);
-                println!("eval {:?}", result?.eval());
+                match result {
+                    Ok(res) => println!("Eval result: {:?}", res.eval()),
+                    Err(e) => println!("Error: {}", e),
+                }
             }
 
             // End the program if we are asked to or we reach end of input

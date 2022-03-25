@@ -1,6 +1,6 @@
-use crate::result::Result;
 use crate::error::LispError;
 use crate::expr::LispExpr;
+use crate::result::Result;
 
 fn parse<'a>(code: &'a [&'a str]) -> Result<(LispExpr, &'a [&'a str])> {
     // If we don't have anything we can just return a blank input
@@ -29,7 +29,7 @@ fn parse<'a>(code: &'a [&'a str]) -> Result<(LispExpr, &'a [&'a str])> {
                         rest = r;
                     }
                     // We reached the end of the input without getting anything
-                    _ => return Err(Box::new(LispError::Reason("Expected list closing".into()))),
+                    _ => return Err(LispError::reason("Expected list closing")),
                 }
             }
             // Return the expression that we just built
@@ -37,9 +37,7 @@ fn parse<'a>(code: &'a [&'a str]) -> Result<(LispExpr, &'a [&'a str])> {
         }
         // If we get the end of a list we are doing something wrong here, we should only be parsing
         // the start of expressions
-        ")" => Err(Box::new(LispError::Reason(
-            "Unexpected list closing".into(),
-        ))),
+        ")" => Err(LispError::reason("Unexpected list closing")),
         // Check if we have a number
         // Unwrapping is safe here because we
         // know that there is at least one character
@@ -63,11 +61,9 @@ pub fn eval(code: &str) -> Result<LispExpr> {
             if rest.len() == 0 {
                 Ok(expr)
             } else {
-                Err(Box::new(LispError::Reason("Failed to parse all of input".into())))
+                Err(LispError::reason("Failed to parse all of input"))
             }
-        },
-        Err(e) => {
-            Err(e)
         }
+        Err(e) => Err(e),
     }
 }
