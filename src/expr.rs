@@ -6,6 +6,30 @@ pub enum LispExpr {
     Symbol(String),
     Number(f64),
     List(Vec<LispExpr>),
+    Lambda(Vec<String>, Box<LispExpr>),
+}
+
+pub fn lambda(args: &[LispExpr]) -> Result<LispExpr> {
+    if args.len() != 2 {
+        return Err(LispError::reason(
+            "Lambda takes two arguments, a list containing the parameters and a function body",
+        ));
+    }
+
+    let mut params_str = vec![];
+    if let LispExpr::List(params) = &args[0] {
+        for p in params {
+            if let LispExpr::Symbol(s) = p {
+                params_str.push(s.clone());
+            } else {
+                return Err(LispError::reason(
+                    "funtion parameters must be symbols to be bound in the body of the function",
+                ));
+            }
+        }
+    }
+
+    Ok(LispExpr::Lambda(params_str, Box::new(args[1].clone())))
 }
 
 pub fn add(args: &[LispExpr]) -> Result<LispExpr> {
@@ -63,6 +87,7 @@ impl LispExpr {
         match symbol {
             "+" => Ok(Box::new(add)),
             "-" => Ok(Box::new(sub)),
+            "lambda" => Ok(Box::new(lambda)),
             _ => Err(LispError::reason(format!("Unknown symbol {}", symbol))),
         }
     }
@@ -79,9 +104,7 @@ impl LispExpr {
         };
 
         match f {
-            Self::Symbol(name) => {
-                Self::lookup(name)?(args)
-            }
+            Self::Symbol(name) => Self::lookup(name)?(args),
             // We didn't get a function to apply
             // TODO: in future function could be a lambda which will not be just a function name in
             // a lookup
