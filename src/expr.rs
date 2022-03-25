@@ -60,7 +60,9 @@ impl LispExpr {
                 let (f, args) = if let Some((f, args)) = list.split_first() {
                     (f, args)
                 } else {
-                    return Err(LispError::reason("Expected a function application got empty list"));
+                    return Err(LispError::reason(
+                        "Expected a function application got empty list",
+                    ));
                 };
 
                 match f {
@@ -76,7 +78,10 @@ impl LispExpr {
                         }
                     }
                     // We didn't get a function to apply
-                    _ => Err(LispError::reason(format!("Expected a function name, got {:?}", self))),
+                    _ => Err(LispError::reason(format!(
+                        "Expected a function name, got {:?}",
+                        self
+                    ))),
                 }
             }
         }
