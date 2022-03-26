@@ -6,6 +6,7 @@ mod parser;
 mod prompt;
 mod result;
 
+use expr::LispEnv;
 use parser::tl_parse;
 use prompt::ReplPrompt;
 use result::Result;
@@ -37,8 +38,9 @@ fn main() -> Result<()> {
             Signal::Success(text) => {
                 // If we got some text, we evaluate it and print the result
                 let result = tl_parse(&text);
+                let env = LispEnv::build_default();
                 match &result {
-                    Ok(res) => println!("Eval result: {:?}", res.eval()),
+                    Ok(res) => println!("Eval result: {:?}", res.eval(env)),
                     Err(_) => println!("Eval result: {:?}", result),
                 }
             }
