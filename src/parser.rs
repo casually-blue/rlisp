@@ -1,22 +1,27 @@
 use crate::error::LispError;
-use crate::expr::LispExpr;
+use crate::expr::*;
 use crate::result::Result;
 
-fn parse_list<'a>(mut code: &'a [&'a str]) -> Result<(LispExpr, &'a [&'a str])> {
-    let mut list = vec![];
+use crate::token::*;
+
+fn parse_list(mut code: &[Token]) -> Result<(LispExpr, &[Token])> {
+    use LispExpr::*;
+    use LispList::*;
+
+    let mut list = Nil;
     loop {
         // Try to get the next token
         match code.split_first() {
             // If we have the end of a list we just exit the loop
-            Some((&")", r)) => {
+            Some((Token::LClose, r)) => {
                 code = r;
-                break;
+                break Ok((List(box list), code));
             }
             // We parse the element of the list recursively
             Some((_, _)) => {
                 let (expr, r) = parse(code)?;
                 // add the expr to the current list
-                list.push(expr);
+                list = Cons(box list, expr);
                 code = r;
             }
             // We reached the end of the input without getting anything
@@ -24,48 +29,41 @@ fn parse_list<'a>(mut code: &'a [&'a str]) -> Result<(LispExpr, &'a [&'a str])> 
         }
     }
     // Return the expression that we just built
-    Ok((LispExpr::List(list), code))
 }
 
-fn parse<'a>(code: &'a [&'a str]) -> Result<(LispExpr, &'a [&'a str])> {
+fn parse(code: &[Token]) -> Result<(LispExpr, &[Token])> {
     // If we don't have anything we can just return a blank input
     let (first, rest) = match code.split_first() {
         Some((f, r)) => (f, r),
-        _ => return Ok((LispExpr::List(vec![]), code)),
+        _ => return Ok((LispExpr::List(box LispList::Nil), code)),
     };
 
-    match *first {
+    match first {
         // We need to parse a sequence of expressions
-        "(" => parse_list(rest),
+        Token::LOpen => parse_list(rest),
         // If we get the end of a list we are doing something wrong here, we should only be parsing
         // the start of expressions
-        ")" => Err(LispError::reason("Unexpected list closing")),
+        Token::LClose => Err(LispError::reason("Unexpected list closing")),
         // Check if we have a number
         // Unwrapping is safe here because we
         // know that there is at least one character
         // in the split
-        x if x.chars().next().unwrap().is_digit(10) => Ok((LispExpr::Number(x.parse()?), rest)),
+        Token::Number(n) => Ok((LispExpr::Number(*n), rest)),
 
         // Check if we have a alpha character (start of an identifier)
         // Unrwrapping applies here as wel
-        x => Ok((LispExpr::Symbol(x.into()), rest)),
+        Token::Symbol(s) => Ok((LispExpr::Symbol(s.clone()), rest)),
+
+        _ => Err(LispError::reason("Unsupported token type")),
     }
 }
 
 pub fn tl_parse(code: &str) -> Result<LispExpr> {
     // Tokenize the lisp code
-    let code = code.replace("(", " ( ").replace(")", " ) ");
-    let code: Vec<&str> = code.split_whitespace().collect();
+    let tokens = crate::lexer::tokenize(code)?;
 
-    // Parse and then return the expression instead of the remaining tokens
-    match parse(&code) {
-        Ok((expr, rest)) => {
-            if rest.len() == 0 {
-                Ok(expr)
-            } else {
-                Err(LispError::reason("Failed to parse all of input"))
-            }
-        }
-        Err(e) => Err(e),
+    match parse(&tokens)? {
+        (expr, []) => Ok(expr),
+        _ => Err(LispError::reason("Failed to parse all of input"))
     }
 }

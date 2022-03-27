@@ -1,3 +1,5 @@
+#![feature(box_syntax)]
+
 extern crate alloc;
 
 mod error;
@@ -5,8 +7,13 @@ mod expr;
 mod parser;
 mod prompt;
 mod result;
+mod lexer;
+mod token;
+mod env;
+mod eval;
 
-use expr::LispEnv;
+use env::LispEnv;
+use eval::eval;
 use parser::tl_parse;
 use prompt::ReplPrompt;
 use result::Result;
@@ -38,11 +45,13 @@ fn main() -> Result<()> {
             Signal::Success(text) => {
                 // If we got some text, we evaluate it and print the result
                 let result = tl_parse(&text);
-                let env = LispEnv::build_default();
+                println!("Parse Tree: {:?}", result);
+                /*
                 match &result {
-                    Ok(res) => println!("Eval result: {:?}", res.eval(env)),
+                    Ok(res) => println!("Eval result: {:?}", eval(res.clone(), LispEnv::new())),
                     Err(_) => println!("Eval result: {:?}", result),
                 }
+                */
             }
 
             // End the program if we are asked to or we reach end of input
